@@ -37,12 +37,12 @@ public class WheelOfFortuneController : MonoBehaviour
         float finalAngle = (360 * 3) + targetAngle; // Three full rotations plus target angle
 
         // Start the initial fast spin for `spinDuration` seconds
-        wheelTransform.DORotate(new Vector3(0, 0, -(360 * 6)), spinDuration, RotateMode.FastBeyond360)
+        wheelTransform.DORotate(new Vector3(0, 0, -(360 * 4)), spinDuration, RotateMode.FastBeyond360)
             .SetEase(Ease.Linear)
             .OnComplete(() =>
             {
                 // After the initial spin, smoothly rotate to the final target slice
-                wheelTransform.DORotate(new Vector3(0, 0, -finalAngle), 2f, RotateMode.FastBeyond360)
+                wheelTransform.DORotate(new Vector3(0, 0, -finalAngle), 4f, RotateMode.FastBeyond360)
                     .SetEase(Ease.OutCubic);
             });
     }
