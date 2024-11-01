@@ -42,7 +42,7 @@ public class WheelOfFortuneController : MonoBehaviour
             .OnComplete(() =>
             {
                 // After the initial spin, smoothly rotate to the final target slice
-                wheelTransform.DORotate(new Vector3(0, 0, -finalAngle), 4f, RotateMode.FastBeyond360)
+                wheelTransform.DORotate(new Vector3(0, 0, -finalAngle), spinDuration, RotateMode.FastBeyond360)
                     .SetEase(Ease.OutCubic);
             });
     }
