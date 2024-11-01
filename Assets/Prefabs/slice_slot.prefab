@@ -145,6 +145,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2528314523108583874}
   - component: {fileID: 8652850340761198035}
+  - component: {fileID: 794649808665204217}
   m_Layer: 5
   m_Name: slice_slot
   m_TagString: Untagged
@@ -182,6 +183,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1937835201112740122}
   m_CullTransparentMesh: 1
+--- !u!114 &794649808665204217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937835201112740122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a143a401b88a46418f21b46d8679482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Image: {fileID: 2159659167757722723}
+  Text: {fileID: 3379902914835353603}
 --- !u!1 &6319516354272250537
 GameObject:
   m_ObjectHideFlags: 0
