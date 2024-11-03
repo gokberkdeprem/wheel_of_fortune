@@ -15,7 +15,6 @@ public class ZoneManager : MonoBehaviour
     [SerializeField] ZoneAnimationController ZoneAnimationController;
     [SerializeField] WheelOfFortuneController WheelOfFortuneController;
 
-    
     private void Awake()
     {
         Instance = this;

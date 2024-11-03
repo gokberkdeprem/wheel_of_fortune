@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using DG.Tweening;
 using System.Collections.Generic;
@@ -31,8 +32,9 @@ public class WheelOfFortuneController : MonoBehaviour
     
     public Button spinButton;
 
-    void Awake()
+    private void OnValidate()
     {
+        spinButton = GameObject.Find("spin_button").GetComponent<Button>();
         spinButton.onClick.AddListener(SpinWheel);
     }
 
@@ -73,6 +75,7 @@ public class WheelOfFortuneController : MonoBehaviour
     
     public void SpinWheel()
     {
+        spinButton.enabled = false;
         targetSlot = GetRandomSlotIndex();
         
         float targetAngle = 360f / probabilities.Length * targetSlot;
@@ -125,6 +128,7 @@ public class WheelOfFortuneController : MonoBehaviour
                     value += currentPrize.Multiplier;
                     _prizesDictionary[currentPrize.SlotId].Text.text = value.ToString();
                     Destroy(prize.gameObject);
+                    spinButton.enabled = true;
                     ZoneManager.Instance.NextZone();
                 });
         }
@@ -133,20 +137,23 @@ public class WheelOfFortuneController : MonoBehaviour
             WheelSlot prizeUnderPrizeColumn = Instantiate(prizePrefab, prizeColumn);
             prizeUnderPrizeColumn.Image.sprite = currentPrize.Icon;
             prizeUnderPrizeColumn.Text.text = currentPrize.Multiplier.ToString();
-            
-            _prizesDictionary.Add(currentPrize.SlotId,prizeUnderPrizeColumn);
+            prizeUnderPrizeColumn.gameObject.SetActive(false);
 
             WheelSlot prizeToMove = Instantiate(prizePrefab, gameObject.transform);
             prizeToMove.Image.sprite = currentPrize.Icon;
             prizeToMove.Text.text = currentPrize.Multiplier.ToString();
 
-            prizeToMove.transform.DOMove(_prizesDictionary[currentPrize.SlotId].transform.position, 0.5f).SetEase(Ease.Linear)
+            prizeToMove.transform.DOMove(prizeColumn.position, 0.5f).SetEase(Ease.Linear)
                 .OnComplete(() =>
                 {
                     Destroy(prizeToMove.gameObject);
+                    prizeUnderPrizeColumn.gameObject.SetActive(true);
                     ZoneManager.Instance.NextZone();
+                    spinButton.enabled = true;
                 });
+            _prizesDictionary.Add(currentPrize.SlotId,prizeUnderPrizeColumn);
         }
+        
     }
     
     private int GetRandomSlotIndex()
