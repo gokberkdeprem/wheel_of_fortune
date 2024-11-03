@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SlotId: 6
   Icon: {fileID: 21300000, guid: cadba5d8db11082479cead7e1861dbb6, type: 3}
-  Multiplier: 4
+  Multiplier: 8
   IsBomb: 0
   Possibility: 0.125

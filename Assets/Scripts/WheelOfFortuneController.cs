@@ -1,18 +1,14 @@
-using System;
-using UnityEngine;
-using DG.Tweening;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.UI;
-using Quaternion = UnityEngine.Quaternion;
+using DG.Tweening;
 using Random = UnityEngine.Random;
 using Vector3 = UnityEngine.Vector3;
 
 public class WheelOfFortuneController : MonoBehaviour
 {
-    public RectTransform wheelTransform;   // Reference to the wheel's RectTransform
+    public RectTransform wheelTransform;
     private float[] probabilities;
     private float[] cumulativeProbabilities;
     public float spinDuration = 4f;
@@ -23,13 +19,15 @@ public class WheelOfFortuneController : MonoBehaviour
     [SerializeField] private WheelSlot prizePrefab;
     [SerializeField] private Transform prizeColumn;
     [SerializeField] private Dictionary<int, WheelSlot> _prizesDictionary = new Dictionary<int, WheelSlot>();
-    
+
     [Header("WheelImage")]
     [SerializeField] private Image wheelImage;
     [SerializeField] private Sprite defaultWheel;
     [SerializeField] private Sprite silverWheel;
     [SerializeField] private Sprite goldenWheel;
-    
+    [SerializeField] private float bombProbability = 0.125f;
+    public float bombProbabilityIncrement = 0.01f;
+
     public Button spinButton;
 
     private void OnValidate()
@@ -42,32 +40,37 @@ public class WheelOfFortuneController : MonoBehaviour
     {
         InitWheel();
     }
+
     public void InitWheel()
     {
-        currentZone = ZoneManager.Instance.GetCurrentZone();
-        probabilities = new float[8];
+        currentZone = ZoneManager.Instance.CurrentZone;
+        bombProbability += bombProbabilityIncrement;
+
         probabilities = currentZone.Slots.Select(x => x.Possibility).ToArray();
+        for (int i = 0; i < currentZone.Slots.Count; i++)
+        {
+            if (currentZone.Slots[i].IsBomb)
+                probabilities[i] += bombProbability;
+        }
+
+        float total = probabilities.Sum();
+        for (int i = 0; i < probabilities.Length; i++)
+            probabilities[i] /= total;
+
         cumulativeProbabilities = new float[probabilities.Length];
         cumulativeProbabilities[0] = probabilities[0];
         for (int i = 1; i < probabilities.Length; i++)
-        {
             cumulativeProbabilities[i] = cumulativeProbabilities[i - 1] + probabilities[i];
-        }
 
         for (int i = 0; i < wheelSlots.Count; i++)
         {
             wheelSlots[i].Image.sprite = currentZone.Slots[i].Icon;
-            if(!currentZone.Slots[i].IsBomb)
-                wheelSlots[i].Text.text = "X" + currentZone.Slots[i].Multiplier.ToString();
-            else
-            {
-                wheelSlots[i].Text.text = "";
-            }
+            wheelSlots[i].Text.text = currentZone.Slots[i].IsBomb ? "" : "X" + currentZone.Slots[i].Multiplier.ToString();
         }
 
         if (ZoneManager.Instance.ZoneCount % 30 == 0)
             wheelImage.sprite = goldenWheel;
-        else if(ZoneManager.Instance.ZoneCount % 5 == 0 || ZoneManager.Instance.ZoneCount == 1)
+        else if (ZoneManager.Instance.ZoneCount % 5 == 0 || ZoneManager.Instance.ZoneCount == 1)
             wheelImage.sprite = silverWheel;
         else
             wheelImage.sprite = defaultWheel;
@@ -75,11 +78,12 @@ public class WheelOfFortuneController : MonoBehaviour
     
     public void SpinWheel()
     {
+        ZoneManager.Instance.exitButton.enabled = false;
         spinButton.enabled = false;
         targetSlot = GetRandomSlotIndex();
         
         float targetAngle = 360f / probabilities.Length * targetSlot;
-        float finalAngle = (360) + targetAngle;
+        float finalAngle = 360 + targetAngle;
 
         wheelTransform.DORotate(new Vector3(0, 0, 360 * 2), spinDuration, RotateMode.FastBeyond360)
             .SetEase(Ease.Linear)
@@ -92,16 +96,17 @@ public class WheelOfFortuneController : MonoBehaviour
 
     private void GiveResult()
     {
-        if(currentZone.Slots[targetSlot].IsBomb)
+        if (currentZone.Slots[targetSlot].IsBomb)
         {
             var currentPrize = currentZone.Slots[targetSlot];
             var prize = Instantiate(prizePrefab, gameObject.transform);
-            prize.transform.DOScale(new Vector3(10, 10, 10), 0.5f);
+            prize.transform.DOScale(new Vector3(10, 10, 10), 0.5f).OnComplete(() => ZoneManager.Instance.ShowRetryButton());
             prize.Image.sprite = currentPrize.Icon;
             prize.Text.text = "";
 
             foreach (Transform child in prizeColumn.transform)
             {
+                _prizesDictionary.Clear();
                 Destroy(child.gameObject);
             }
         }
@@ -124,10 +129,11 @@ public class WheelOfFortuneController : MonoBehaviour
             prize.transform.DOMove(_prizesDictionary[currentPrize.SlotId].transform.position, 0.5f).SetEase(Ease.Linear)
                 .OnComplete(() =>
                 {
-                    var currentCount = int.TryParse(_prizesDictionary[currentPrize.SlotId].Text.text, out var value);
+                    int.TryParse(_prizesDictionary[currentPrize.SlotId].Text.text, out var value);
                     value += currentPrize.Multiplier;
                     _prizesDictionary[currentPrize.SlotId].Text.text = value.ToString();
                     Destroy(prize.gameObject);
+                    ZoneManager.Instance.exitButton.enabled = true;
                     spinButton.enabled = true;
                     ZoneManager.Instance.NextZone();
                 });
@@ -149,11 +155,11 @@ public class WheelOfFortuneController : MonoBehaviour
                     Destroy(prizeToMove.gameObject);
                     prizeUnderPrizeColumn.gameObject.SetActive(true);
                     ZoneManager.Instance.NextZone();
+                    ZoneManager.Instance.exitButton.enabled = true;
                     spinButton.enabled = true;
                 });
-            _prizesDictionary.Add(currentPrize.SlotId,prizeUnderPrizeColumn);
+            _prizesDictionary.Add(currentPrize.SlotId, prizeUnderPrizeColumn);
         }
-        
     }
     
     private int GetRandomSlotIndex()
