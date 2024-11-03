@@ -2,8 +2,12 @@ using UnityEngine;
 using DG.Tweening;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.Serialization;
+using System.Numerics;
+using Unity.Mathematics;
 using UnityEngine.UI;
+using Quaternion = UnityEngine.Quaternion;
+using Random = UnityEngine.Random;
+using Vector3 = UnityEngine.Vector3;
 
 public class WheelOfFortuneController : MonoBehaviour
 {
@@ -13,11 +17,14 @@ public class WheelOfFortuneController : MonoBehaviour
     public float spinDuration = 4f;
     private int targetSlot;
     private Zone currentZone;
+    public List<Slot> Prizes = new List<Slot>();
     [SerializeField] private List<WheelSlot> wheelSlots = new List<WheelSlot>();
+    [SerializeField] private WheelSlot prizePrefab;
+    [SerializeField] private Transform prizeColumn;
+    [SerializeField] private Dictionary<int, WheelSlot> _prizesDictionary = new Dictionary<int, WheelSlot>();
     
     [Header("WheelImage")]
     [SerializeField] private Image wheelImage;
-
     [SerializeField] private Sprite defaultWheel;
     [SerializeField] private Sprite silverWheel;
     [SerializeField] private Sprite goldenWheel;
@@ -83,11 +90,65 @@ public class WheelOfFortuneController : MonoBehaviour
     private void GiveResult()
     {
         if(currentZone.Slots[targetSlot].IsBomb)
-            Debug.Log("Bomb");
+        {
+            var currentPrize = currentZone.Slots[targetSlot];
+            var prize = Instantiate(prizePrefab, gameObject.transform);
+            prize.transform.DOScale(new Vector3(10, 10, 10), 0.5f);
+            prize.Image.sprite = currentPrize.Icon;
+            prize.Text.text = "";
+
+            foreach (Transform child in prizeColumn.transform)
+            {
+                Destroy(child.gameObject);
+            }
+        }
         else
-            ZoneManager.Instance.NextZone();
+        {
+            PlayPrizeAnimation();
+        }
     }
 
+    private void PlayPrizeAnimation()
+    {
+        var currentPrize = currentZone.Slots[targetSlot];
+       
+        if (_prizesDictionary.ContainsKey(currentPrize.SlotId))
+        {
+            var prize = Instantiate(prizePrefab, gameObject.transform);
+            prize.Image.sprite = currentPrize.Icon;
+            prize.Text.text = currentPrize.Multiplier.ToString();
+
+            prize.transform.DOMove(_prizesDictionary[currentPrize.SlotId].transform.position, 0.5f).SetEase(Ease.Linear)
+                .OnComplete(() =>
+                {
+                    var currentCount = int.TryParse(_prizesDictionary[currentPrize.SlotId].Text.text, out var value);
+                    value += currentPrize.Multiplier;
+                    _prizesDictionary[currentPrize.SlotId].Text.text = value.ToString();
+                    Destroy(prize.gameObject);
+                    ZoneManager.Instance.NextZone();
+                });
+        }
+        else
+        {
+            WheelSlot prizeUnderPrizeColumn = Instantiate(prizePrefab, prizeColumn);
+            prizeUnderPrizeColumn.Image.sprite = currentPrize.Icon;
+            prizeUnderPrizeColumn.Text.text = currentPrize.Multiplier.ToString();
+            
+            _prizesDictionary.Add(currentPrize.SlotId,prizeUnderPrizeColumn);
+
+            WheelSlot prizeToMove = Instantiate(prizePrefab, gameObject.transform);
+            prizeToMove.Image.sprite = currentPrize.Icon;
+            prizeToMove.Text.text = currentPrize.Multiplier.ToString();
+
+            prizeToMove.transform.DOMove(_prizesDictionary[currentPrize.SlotId].transform.position, 0.5f).SetEase(Ease.Linear)
+                .OnComplete(() =>
+                {
+                    Destroy(prizeToMove.gameObject);
+                    ZoneManager.Instance.NextZone();
+                });
+        }
+    }
+    
     private int GetRandomSlotIndex()
     {
         float randomValue = Random.Range(0f, 1f);
